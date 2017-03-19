@@ -1,0 +1,37 @@
+RewriteEngine On
+
+# Some hosts may require you to use the `RewriteBase` directive.
+# If you need to use the `RewriteBase` directive, it should be the
+# absolute physical path to the directory that contains this htaccess file.
+#
+# RewriteBase /
+
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteRule ^ index.php [QSA,L]
+
+<IfModule mod_headers.c>
+  Header unset Connection
+  Header unset Time-Zone
+  Header unset Keep-Alive
+  Header unset Access-Control-Allow-Origin
+  Header unset Access-Control-Allow-Headers
+  Header unset Access-Control-Expose-Headers
+  Header unset Access-Control-Allow-Methods
+  Header unset Access-Control-Allow-Credentials
+
+  Header set   Connection                         keep-alive
+  Header set   Time-Zone                          "Europe/London"
+  Header set   Keep-Alive                         timeout=100,max=500
+  Header set   Access-Control-Allow-Origin        "*"
+ 
+  Header set   Access-Control-Allow-Methods       "GET, HEAD, HTTP,POST"
+  Header set   Access-Control-Allow-Credentials   "true"
+
+  Header set DNT "0"
+  Header set Accept-Ranges "bytes"
+  Header set Vary "Accept-Encoding"
+  Header set X-UA-Compatible "IE=edge,chrome=1"
+  Header set X-Frame-Options "SAMEORIGIN"
+  Header set X-Content-Type-Options "nosniff"
+  Header set X-Xss-Protection "1; mode=block"
+</IfModule>
