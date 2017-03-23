@@ -3,6 +3,10 @@
     try{
       $catchJsonData=$request->getBody();
       $decodeJsonData=json_decode($catchJsonData);
+    //   $designation='';
+    //   if(isset($decodeJsonData->designation)){
+    //     $designation=$decodeJsonData->designation;
+    //   }
       $firstName=$decodeJsonData->firstName;
       $lastName=$decodeJsonData->lastName;
       $designation=$decodeJsonData->designation;
@@ -25,6 +29,7 @@
           }else{
               $result = array('success'=>false,'message'=>'unable to register!!');
           }
+        // $result=$designation;
       }    
       return $response->withJson($result);
     }catch(Exception $e){
@@ -43,6 +48,74 @@
         $errorMessage=$e->getMessage();
         $message=array('success'=>false,'error'=>'internal server error!!');
         return $response->withJson($message);
+    }
+  });
+  $app->post('/login/',function($request,$response,$args){
+        try{
+            $catchJsonData=$request->getBody();
+            $decodeJsonData=json_decode($catchJsonData);
+            $name=$decodeJsonData->username;
+            $password=md5($decodeJsonData->password);
+            $userValidate=$this->db->prepare("SELECT * FROM user WHERE email='$name' AND password='$password'");
+            $userValidate->execute();
+            $data=$userValidate->rowCount();
+            if($data>0){
+                $userDetails=$userValidate->fetchAll(PDO::FETCH_OBJ);
+                $time=time("H:i:s");
+                $sessionTime=$time+180;
+                $sessionid=1;
+                foreach($userDetails as $details){
+                    $userid=$details->user_id;
+                }
+                $fetchactiveUser=$this->db->prepare("SELECT * FROM active_user WHERE userid='$userid'");
+                $fetchactiveUser->execute();
+                $rowCount=$fetchactiveUser->rowCount();
+                if($rowCount<=0){
+                    $insertActiveuser=$this->db->prepare("INSERT into active_user(userid,sessid,expiretime) VALUES($userid,$sessionid,$sessionTime)");
+                    $insertActiveuser->execute(); 
+                }
+                
+                $sessionStatus="true";      
+                $message=array('success'=>true,'message'=>$sessionTime,'time'=>$time,'row'=>$rowCount,'userid'=>$userid,'session_status'=>$sessionStatus);
+            }else{
+                $message=array('success'=>false,'message'=>'username and password is incorrect!!');
+            }
+            return $response->withJson($message);
+        }catch(Exception $e){
+            $errorMessage=$e->getMessage();
+            $message=array('success'=>false,'error'=>'internal server error!!');
+            return $response->withJson($message);
+        }
+  });
+  $app->post('/checkSession/',function($request,$response,$args){
+      try{
+        $catchJsonData=$request->getBody();
+        $decodeJsonData=json_decode($catchJsonData);
+        $userid=$decodeJsonData->userid;
+        $currentTime=time("H:i:s");
+        $fetchExpireTime=$this->db->prepare("SELECT * FROM active_user WHERE userid='$userid'");
+        $fetchExpireTime->execute();
+        $data=$fetchExpireTime->fetchAll(PDO::FETCH_OBJ);
+        foreach($data as $row){
+          $expireTime=$row->expiretime;  
+        }
+        
+        if($currentTime>$expireTime){
+            $deleteActiveUser=$this->db->prepare("DELETE FROM active_user WHERE userid='$userid'");
+            $deleteActiveUser->execute();
+            $message=array('success'=>false,'message'=>'session has been expired!!','session_status'=>'false');
+        }else{
+            $sessionStatus='true';
+            $increasExpireDate=$currentTime+180;
+            $updateExpireTime=$this->db->prepare("UPDATE active_user SET expiretime=$increasExpireDate");
+            $updateExpireTime->execute();
+            $message=array('success'=>true,'message'=>'session updated!!','session_status'=>'true');
+
+        }
+        return $response->withJson($message);
+      }catch(Exception $e){
+        $errorMessage=$e->getMessage();
+        $message=array('success'=>false,'message'=>'internal server error!!');
     }
   });
   $app->post('/updateUser/[{userid}]',function($request,$response,$args){
